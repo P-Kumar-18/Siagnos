@@ -16,7 +16,11 @@ It's not a chatbot wrapper and it's not RAG. It's a taste model trained on my ow
 
 ## Status
 
-Early development. Currently on Stage 1: embeddings pipeline.
+**Early development.** 
+
+Currently on Stage:
+- Stage 1: embeddings pipeline. *(done)*
+- Stage 2: date collection.
 
 ## Tech stack
 
