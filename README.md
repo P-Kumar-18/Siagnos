@@ -12,7 +12,7 @@ So I'm building that. A system trained on my own reading behaviour that scores n
 
 Siagnos tracks my reading sessions (what I open, how far I get, whether I return), builds a taste profile from that data, and scores unseen fics against it. It explains its reasoning instead of just spitting out a number.
 
-It's not a chatbot wrapper and it's not RAG. It's a taste model trained on my own behaviour, with its own feature extraction pipeline built from embeddings and a local LLM.
+It's not a chatbot wrapper and it's not RAG. It's a taste model trained on my own behaviour, with its own feature extraction pipeline built from embeddings and local NLP text processing utilities for tag analysis.
 
 ## Status
 
@@ -26,7 +26,7 @@ Currently on Stage:
 
 - Python, FastAPI, PostgreSQL
 - HuggingFace Sentence Transformers for embeddings
-- Ollama for local LLM feature extraction
+- Ollama/NLP models for semantic tag mapping
 - XGBoost / LightGBM for the preference model
 - Docker, Azure for deployment
 
