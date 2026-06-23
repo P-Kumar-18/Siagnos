@@ -16,11 +16,14 @@ It's not a chatbot wrapper and it's not RAG. It's a taste model trained on my ow
 
 ## Status
 
-**Early development.** 
+**Early development.**
 
-Currently on Stage:
-- Stage 1: embeddings pipeline. *(done)*
-- Stage 2: date collection.
+- Stage 1 — Embeddings pipeline: *done*
+- Stage 2 — Data collection (AO3 scraping): *paused pending OTW Research Committee response*
+
+Scraping is on hold until I hear back from OTW. This project is fully open source and I want to be upfront about the process — scraping at scale without checking first felt wrong, so I reached out before going further.
+
+Next up: Stage 3 (PostgreSQL schema design).
 
 ## Tech stack
 
