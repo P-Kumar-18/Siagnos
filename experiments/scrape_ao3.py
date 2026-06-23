@@ -26,7 +26,9 @@ def fetch(url):
         try:
             return SESSION.get(url)
         except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
+            print(f"Network error. Retrying in 5 minutes.\n\n")
             sleep(300)
+            print(f"Resuming\n")
 
 
 def sleep(time_=None):
@@ -54,7 +56,7 @@ def save_url(url: str) -> None:
         file.write(f"{url}\n")
 
 
-def get_url(url, works) -> list[str]:
+def get_url(url, works, is_resumed=False) -> list[str]:
     # AO3 shows about 20 works per page, so we walk each result page and extract work links.
     works = int(works)
     pages = ceil(works/20)
@@ -63,12 +65,24 @@ def get_url(url, works) -> list[str]:
     iteration = 0
     
     base_url = url.split('?')[0]
+    
+    if is_resumed:
+        parent_dir = get_path()
+        file_path_url = os.path.join(parent_dir, "data", "url_list.txt")
+        
+        with open(file_path_url, "r", encoding="utf-8") as file:            
+            url_list = [line.strip() for line in file.readlines()]
+            
+            story_count = len(url_list)
+            
+        page_no = ceil(story_count/20) + 1
+        print(f"Resuming from page: {page_no}\n")
 
     while page_no != pages + 1:
         iteration += 1
         current_url = f"{base_url}?page={page_no}"
         
-        print(f"Current URL: {current_url}")
+        print(f"Current URL: {current_url}\n")
         
         response = fetch(current_url)
 
@@ -78,7 +92,7 @@ def get_url(url, works) -> list[str]:
         a_tags = soup.select("h4.heading a:not([rel])")
                 
         if len(a_tags) == 0:
-            print(f"URL Page did not load, pausing for a bit.")
+            print(f"URL Page did not load, pausing for a bit.\n")
             sleep(15.23)
             continue
         
@@ -92,11 +106,12 @@ def get_url(url, works) -> list[str]:
                 url_list.append(scraped_url)
                 save_url(url=scraped_url)
 
-        print(f"Fetched URLs from Page: {page_no} on Iteration: {iteration}")
+        print(f"Fetched URLs from Page: {page_no}\nIteration: {iteration}\n")
         
         page_no += 1
         sleep()
         
+    iteration = 0
     return url_list
 
 
@@ -112,7 +127,7 @@ def extract(url: str) -> dict:
         title = title_element.text.strip() if title_element else None
         
         if title is None:
-            print(f"Fanfiction did not load, pausing for a bit.")
+            print(f"Fanfiction did not load, pausing for a bit.\n")
             iteration += 1
             sleep(15.6)
             continue
@@ -231,7 +246,7 @@ def scrape():
     story = 1
     print(f"Starting scraper.")
     is_resumed = False
-    if input("Use saved URL list? ") == "y":
+    if input("Use completed saved URL list? ") == "y":
         # Resume mode reuses the saved URL list and can skip already-written CSV rows.
         parent_dir = get_path()
         file_path_url = os.path.join(parent_dir, "data", "url_list.txt")
@@ -255,7 +270,20 @@ def scrape():
             print(f"Skipping stories: {rows}")
             story = rows + 1
     else:
-        url_list = get_url(url=input("Enter URL: "), works=int(input("Enter Works: ")))
+        url = input("Enter AO3 URL: ")
+        works = int(input("Enter number of works to scrape: "))
+        parent_dir = get_path()
+        file_path_url = os.path.join(parent_dir, "data", "url_list.txt")
+        if os.path.exists(file_path_url):
+            with open(file_path_url, "r", encoding="utf-8") as file:
+                line_count = sum(1 for line in file)
+                
+                if line_count > 0:
+                    is_resumed = True
+                    url_list = get_url(url=url, works=works, is_resumed=is_resumed)
+                    is_resumed = False
+        else:
+            url_list = get_url(url=url, works=works)
     print(f"Got the URLs")
 
     for url in url_list:
