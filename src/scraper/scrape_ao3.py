@@ -65,8 +65,8 @@ def sleep(time_=None):
 
 def get_path():
     # Resolve the project root from this script so data files land in a stable place.
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    return os.path.dirname(script_dir)
+    script_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    return script_dir
 
 
 def save_url(url: str) -> None:
