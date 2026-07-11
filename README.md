@@ -20,10 +20,11 @@ It's not a chatbot wrapper and it's not RAG. It's a taste model trained on my ow
 
 - Stage 1 — Embeddings pipeline: *done*
 - Stage 2 — Data collection (AO3 scraping): *active*
+- Stage 3 — PostgreSQL schema: *done*
 
-Reached out to OTW before scraping at scale. They confirmed automated scraping is acceptable provided rate limits are respected and the project stays focused on metadata rather than fanwork content. Scraping is now underway.
+Reached out to OTW before scraping at scale. They confirmed automated scraping is acceptable provided rate limits are respected and the project stays focused on metadata rather than fanwork content.
 
-Next up: Stage 3 (PostgreSQL schema design).
+Next up: loading scraped data into the schema, then building [Opsis](https://github.com/P-Kumar-18/Opsis) — the content-based recommender and alpha version of Siagnos.
 
 ## Tech stack
 
