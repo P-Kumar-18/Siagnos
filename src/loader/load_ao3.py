@@ -6,6 +6,7 @@ from src.loader.inserter import insert_fics, insert_value_tables,insert_join_tab
 from src.loader.config import LIST_COLUMNS
 
 import pandas as pd
+from pathlib import Path
 
 
 def load_ao3(csv_path: str):
@@ -75,4 +76,5 @@ def load_ao3(csv_path: str):
 
 
 if __name__ == "__main__":
-    load_ao3("data/ao3_data.csv")
+    _path = Path(__file__).parent.parent.parent / "data" / "raw" / "ao3_data.csv"
+    load_ao3(_path)

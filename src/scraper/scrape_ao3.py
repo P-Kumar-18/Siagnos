@@ -72,7 +72,7 @@ def get_path():
 def save_url(url: str) -> None:
     # Persist every discovered work URL so the scrape can be resumed later.
     parent_dir = get_path()
-    file_path = os.path.join(parent_dir, "data", "url_list.txt")
+    file_path = os.path.join(parent_dir, "data", "raw", "url_list.txt")
 
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
@@ -92,7 +92,7 @@ def get_url(url, works, is_resumed=False) -> list[str]:
     
     if is_resumed:
         parent_dir = get_path()
-        file_path_url = os.path.join(parent_dir, "data", "url_list.txt")
+        file_path_url = os.path.join(parent_dir, "data", "raw", "url_list.txt")
         
         with open(file_path_url, "r", encoding="utf-8") as file:            
             url_list = [line.strip() for line in file.readlines()]
@@ -278,10 +278,11 @@ def extract(url: str, story: int) -> dict:
 def save_failed_url(url: str, story: int, response) -> None:
     # Persist failed URLs so they can be retried later.
     parent_dir = get_path()
-    file_path_failed = os.path.join(parent_dir, "data", "failed_url_list.txt")
-    file_path_debugging = os.path.join(parent_dir, "data", f"debugging_{story}.html")
+    file_path_failed = os.path.join(parent_dir, "data", "raw","failed_url_list.txt")
+    file_path_debugging = os.path.join(parent_dir, "data", "debugging", f"debugging_{story}.html")
 
     os.makedirs(os.path.dirname(file_path_failed), exist_ok=True)
+    os.makedirs(os.path.dirname(file_path_debugging), exist_ok=True)
 
     with open(file_path_failed, "a", encoding="utf-8") as file:
         file.write(f"{url}\n")
@@ -293,7 +294,7 @@ def save_failed_url(url: str, story: int, response) -> None:
 def save(data: dict) -> None:
     # Append one row per work so the CSV can grow incrementally during long runs.
     parent_dir = get_path()
-    file_path = os.path.join(parent_dir, "data", "ao3_data.csv")
+    file_path = os.path.join(parent_dir, "data", "raw", "ao3_data.csv")
     
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
     file_exists = os.path.isfile(file_path)
@@ -314,14 +315,14 @@ def scrape():
     if input("Use completed saved URL list? ") == "y":
         # Resume mode reuses the saved URL list and can skip already-written CSV rows.
         parent_dir = get_path()
-        file_path_url = os.path.join(parent_dir, "data", "url_list.txt")
+        file_path_url = os.path.join(parent_dir, "data", "raw", "url_list.txt")
         
         with open(file_path_url, "r", encoding="utf-8") as file:
             url_list = file.read().splitlines()
         
         if input("Resume scrape from last point? ") == "y":
-            file_path_fic = os.path.join(parent_dir, "data", "ao3_data.csv")
-            file_path_failed = os.path.join(parent_dir, "data", "failed_url_list.txt")
+            file_path_fic = os.path.join(parent_dir, "data", "raw", "ao3_data.csv")
+            file_path_failed = os.path.join(parent_dir, "data", "raw","failed_url_list.txt")
             is_resumed = True
             rows = 0
             
@@ -342,7 +343,7 @@ def scrape():
         url = input("Enter AO3 URL: ")
         works = int(input("Enter number of works to scrape: "))
         parent_dir = get_path()
-        file_path_url = os.path.join(parent_dir, "data", "url_list.txt")
+        file_path_url = os.path.join(parent_dir, "data", "raw", "url_list.txt")
         if os.path.exists(file_path_url):
             with open(file_path_url, "r", encoding="utf-8") as file:
                 line_count = sum(1 for line in file)
