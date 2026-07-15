@@ -1,6 +1,6 @@
 from src.loader.cleaner import clean_dataframe
 from src.loader.normalizer import build_normalized_tables, build_join_tables
-from src.loader.validator import validate
+from src.loader.validator import validate, filter_valid_rows
 from src.loader.database import get_connection, fetch_lookup_maps
 from src.loader.inserter import insert_fics, insert_value_tables,insert_join_tables
 from src.loader.config import LIST_COLUMNS
@@ -16,6 +16,32 @@ def load_ao3(csv_path: str):
     # Cleaning
     df = clean_dataframe(df_raw)
     print(f"Cleaned dataframe, resulting in {len(df)} rows")
+
+    valid_rows, invalid_rows = filter_valid_rows(
+        df,
+        LIST_COLUMNS,
+    )
+
+    df = pd.DataFrame(valid_rows)
+
+    print(
+        f"Validation complete: "
+        f"{len(valid_rows)} valid rows, "
+        f"{len(invalid_rows)} invalid rows"
+    )
+
+    if invalid_rows:
+        invalid_df = pd.DataFrame(invalid_rows)
+        _path = Path(__file__).parent.parent.parent / "data" / "invalid" / "invalid_rows.csv"
+        invalid_df.to_csv(
+            _path,
+            index=False,
+        )
+
+        print(
+            "Saved invalid rows to "
+            f"{_path}"
+        )
 
     # Normalize core + lookup values
     df, df_core, value_tables, duplicates_removed = (
