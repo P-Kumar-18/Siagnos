@@ -2,24 +2,15 @@ import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 
 
-def compute_cosine_similarity(
-    query_embedding: np.ndarray,
-    candidate_embeddings: np.ndarray,
-) -> np.ndarray:
-
-    similarities = cosine_similarity(
-        query_embedding.reshape(1, -1),
-        candidate_embeddings,
-    )[0]
+def compute_cosine_similarity(query_embedding: np.ndarray, candidate_embeddings: np.ndarray) -> np.ndarray:
+    """Compute 1D cosine similarity array between a single query vector embedding and candidate matrix."""
+    similarities = cosine_similarity(query_embedding.reshape(1, -1), candidate_embeddings)[0]
 
     return similarities
 
 
-def compute_jaccard_similarity(
-    values_a: set[str],
-    values_b: set[str],
-) -> float:
-
+def compute_jaccard_similarity(values_a: set[str], values_b: set[str]) -> float:
+    """Calculate Jaccard similarity index ratio between two set collections of string tags."""
     if not values_a and not values_b:
         return 1.0
 
@@ -33,12 +24,8 @@ def compute_jaccard_similarity(
     return len(intersection) / len(union)
 
 
-def min_max_normalize(
-    value: float,
-    minimum: float,
-    maximum: float,
-) -> float:
-
+def min_max_normalize(value: float, minimum: float, maximum: float) -> float:
+    """Perform min-max feature scaling normalization bounded between 0.0 and 1.0."""
     if maximum == minimum:
         return 0.0
 
