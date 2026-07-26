@@ -6,10 +6,7 @@ def validate_row(row, list_columns):
     if row["fic_id"] is None:
         raise ValidationError("Missing fic_id")
 
-    required_columns = [
-        "url", "name", "hits", "bookmarks", "kudos",
-        "current_chapters", "words", "language", "rating"
-    ]
+    required_columns = ["url", "title", "hits", "bookmarks", "kudos", "current_chapters", "words", "language", "rating"]
 
     for column in required_columns:
         if row[column] is None:
@@ -17,9 +14,7 @@ def validate_row(row, list_columns):
 
     for column in list_columns:
         if column in row and not isinstance(row[column], list):
-            raise ValidationError(
-                f"{column} must be a list, got {type(row[column]).__name__}"
-            )
+            raise ValidationError(f"{column} must be a list, got {type(row[column]).__name__}")
 
 
 def filter_valid_rows(df, list_columns):
@@ -31,13 +26,7 @@ def filter_valid_rows(df, list_columns):
             validate_row(row, list_columns)
             valid_rows.append(row.to_dict())
         except ValidationError as e:
-            invalid_rows.append(
-                {
-                    "row_number": index,
-                    "fic_id": row.get("fic_id"),
-                    "error": str(e),
-                }
-            )
+            invalid_rows.append({"row_number": index, "fic_id": row.get("fic_id"), "error": str(e)})
 
     return valid_rows, invalid_rows
 

@@ -1,11 +1,15 @@
-from src.loader.config import VALUE_TABLE_MAPPING, JOIN_TABLE_MAPPING
+from src.loader import JOIN_TABLE_MAPPING, VALUE_TABLE_MAPPING
 
 import pandas as pd
 
+
 def sql_safe(value):
+    # Returns None (translating to SQL NULL) if value is pandas missing, else returns raw value
     return None if pd.isna(value) else value
 
+
 def insert_fics(connection, df_core):
+    # Write parameterized conflict-tolerant batch SQL execution query
     query = """
     INSERT INTO fics (
         fic_id,
@@ -47,6 +51,7 @@ def insert_fics(connection, df_core):
     """
 
     with connection.cursor() as cur:
+        # Loop and execute insertions using cleaned representation tuples
         for row in df_core.itertuples(index=False):
             cur.execute(
                 query,
@@ -74,11 +79,9 @@ def insert_fics(connection, df_core):
 
 
 def insert_value_tables(connection, value_tables):
-
+    # Iterate dynamically through each tag lookup DataFrame to populate secondary maps
     with connection.cursor() as cur:
-
         for key, df in value_tables.items():
-
             table_name, _, value_column = VALUE_TABLE_MAPPING[key]
 
             query = f"""
@@ -96,13 +99,10 @@ def insert_value_tables(connection, value_tables):
 
 
 def insert_join_tables(connection, join_tables):
-
+    # Establish many-to-many references between core works and mapped tags
     with connection.cursor() as cur:
-
         for key, df in join_tables.items():
-
             table_name = JOIN_TABLE_MAPPING[key]
-
             _, id_column, _ = VALUE_TABLE_MAPPING[key]
 
             query = f"""

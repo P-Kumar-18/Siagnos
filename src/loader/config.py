@@ -1,3 +1,4 @@
+# Columns containing list or array formatted values in raw data
 LIST_COLUMNS = [
     'warning',
     'category',
@@ -7,6 +8,8 @@ LIST_COLUMNS = [
     'freeform'
 ]
 
+
+# Columns representing numerical values requiring safe integer conversion
 INTEGER_COLUMNS = [
     'words',
     'kudos',
@@ -16,6 +19,8 @@ INTEGER_COLUMNS = [
     'total_chapters'
 ]
 
+
+# Columns representing standard textual descriptive metadata fields
 TEXT_COLUMNS = [
     'title',
     'author',
@@ -26,12 +31,17 @@ TEXT_COLUMNS = [
     'url'
 ]
 
+
+# Numerical columns that must default to zero when null/missing
 DEFAULT_ZERO_COLUMNS = [
     'hits',
     'kudos',
     'bookmarks'
 ]
 
+
+# Configuration tuples used to define and normalize many-to-many relationship structures
+# Format: (source_column, primary_key, table_name)
 TABLE_CONFIG = [
     ('warning', 'warning_id', 'warning'),
     ('category', 'categories_id', 'categories'),
@@ -41,7 +51,9 @@ TABLE_CONFIG = [
     ('freeform', 'freeform_id', 'freeform')
 ]
 
-FIC_COLUMNS =[
+
+# Standard column ordering and schema definitions for the primary fanfiction table
+FIC_COLUMNS = [
     'fic_id',
     'url',
     'title',
@@ -59,6 +71,9 @@ FIC_COLUMNS =[
     'rating'
 ]
 
+
+# Mappings associating metadata attributes with target value tables and primary/foreign keys
+# Format: "source_field": ("value_column", "id_column", "target_table_name")
 VALUE_TABLE_MAPPING = {
     "warning": ("warning_value", "warning_id", "warning"),
     "category": ("categories_value", "categories_id", "categories"),
@@ -68,6 +83,8 @@ VALUE_TABLE_MAPPING = {
     "freeform": ("freeform_value", "freeform_id", "freeform"),
 }
 
+
+# Mappings linking metadata attributes to their respective intermediary database join tables
 JOIN_TABLE_MAPPING = {
     "warning": "warning_join",
     "category": "categories_join",
