@@ -8,6 +8,9 @@ CREATE TYPE status AS ENUM ('completed', 'on_going');
 -- Track user-specific emotional sentiment or rating for a fanfiction
 CREATE TYPE rating_types AS ENUM ('disliked', 'liked', 'loved');
 
+-- New enum for reading progress state
+CREATE TYPE reading_status AS ENUM ('reading', 'up_to_date', 'completed');
+
 
 -- ============================================================================
 -- 2. CORE METADATA & USER BEHAVIOR TABLES
@@ -36,7 +39,7 @@ CREATE TABLE fics (
 CREATE TABLE behaviour (
     fic_id BIGINT PRIMARY KEY REFERENCES fics(fic_id) ON DELETE CASCADE,
     chapters_read INTEGER NOT NULL,
-    completed BOOLEAN NOT NULL,
+    completed reading_status NOT NULL,
     return_visits INTEGER NOT NULL,
     ratings rating_types
 );
