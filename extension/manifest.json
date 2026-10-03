@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "Siagnos Tracker (dev)",
+  "version": "0.2.4",
+  "description": "Development tracker for observing AO3 reading activity.",
+  "permissions": [
+    "storage"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://archiveofourown.org/works/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}
