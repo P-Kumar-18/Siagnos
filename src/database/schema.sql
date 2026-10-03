@@ -39,9 +39,10 @@ CREATE TABLE fics (
 CREATE TABLE behaviour (
     fic_id BIGINT PRIMARY KEY REFERENCES fics(fic_id) ON DELETE CASCADE,
     chapters_read INTEGER NOT NULL,
-    completed reading_status NOT NULL,
     return_visits INTEGER NOT NULL,
-    ratings rating_types
+    ratings rating_types,
+    reading_progress reading_status NOT NULL,
+    closed_at TIMESTAMP WITHOUT TIME ZONE
 );
 
 
