@@ -3,12 +3,20 @@
   "name": "Siagnos Tracker (dev)",
   "version": "0.2.4",
   "description": "Development tracker for observing AO3 reading activity.",
+
   "permissions": [
     "storage"
   ],
+
+  "host_permissions": [
+    "http://127.0.0.1:8000/*"
+  ],
+
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "type": "module"
   },
+
   "content_scripts": [
     {
       "matches": [
