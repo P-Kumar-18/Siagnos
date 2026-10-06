@@ -4,8 +4,9 @@ import time
 from bs4 import BeautifulSoup
 from csv import DictWriter, reader
 from math import ceil
-from random import uniform
-from pathlib import Path    
+from random import uniform, choice
+from pathlib import Path
+from datetime import timedelta
 
 
 # Keep one session so AO3 sees a consistent browser-like client and we reuse cookies.
@@ -17,25 +18,43 @@ SESSION = cloudscraper.create_scraper(
     }
 )
 
+REQUEST_GAP_SECONDS = 6.5
+JITTER_SECONDS = (0.0, 3.0)
+MAX_FAILURE_STREAK = 5
+
+
+def sleep_with_jitter(seconds=None):
+    """Add a human-like pause that varies a bit from request to request."""
+    if seconds is None:
+        time.sleep(uniform(
+            REQUEST_GAP_SECONDS + JITTER_SECONDS[0],
+            REQUEST_GAP_SECONDS + JITTER_SECONDS[1]
+        ))
+    else:
+        time.sleep(seconds)
+
 
 def fetch(url, mode="bulk"):
     """
     Fetches the HTML content of a given URL, executing retries in case
     of transient network drops or Cloudflare protection blocks.
     """
+    global SESSION
     MAX_RETRIES = 5
+    backoff_base = 15 if mode == "bulk" else 5
+    delay = backoff_base
 
     if mode == "bulk":
         sleep_retry = 60
-        sleep_error = 300
     else:
         MAX_RETRIES = 3
         sleep_retry = 3
-        sleep_error = 3
 
     for attempt in range(1, MAX_RETRIES + 1):
         try:
-            response = SESSION.get(url, timeout=90)
+            # Hit the URL immediately. 
+            # Timeout lowered from 90 to 15 so hanging connections fail fast and retry.
+            response = SESSION.get(url, timeout=30)
 
             if response.status_code == 200:
                 return response
@@ -43,50 +62,44 @@ def fetch(url, mode="bulk"):
             if response.status_code == 404:
                 print(f"HTTP 404 for {url}")
                 return response
-
+                
             if response.status_code == 525:
                 if mode == "bulk":
-                    print(f"Cloudflare 525 (attempt {attempt}/{MAX_RETRIES})")
+                    print(f"Cloudflare 525 for {url} (attempt {attempt}/{MAX_RETRIES}). Cooldown & re-rolling session...")
                 
-                sleep(sleep_error)
+                # Give your IP a real breathing window (e.g., 20s, 40s, 60s...)
+                sleep_with_jitter(20 * attempt)
                 
-                if mode == "live":
-                    sleep_retry += 2
-                    sleep_error += 2
-                
+                # Re-roll the session fingerprint
+                SESSION = cloudscraper.create_scraper()
                 continue
-            
+
+            if response.status_code in {429, 403, 500, 502, 503, 504}:
+                if mode == "bulk":
+                    print(
+                        f"Temporary block ({response.status_code}) for {url} "
+                        f"(attempt {attempt}/{MAX_RETRIES}); backing off for {delay}s"
+                    )
+                sleep_with_jitter(delay)
+                delay = min(delay * 2, 180)
+                continue
+
             if mode == "bulk":
                 print(f"HTTP {response.status_code} (attempt {attempt}/{MAX_RETRIES})")
-            
-            sleep(sleep_retry)
-            
+
+            sleep_with_jitter(sleep_retry)
+
             if mode == "live":
                 sleep_retry += 2
-                sleep_error += 2
 
         except Exception as e:
             if mode == "bulk":
                 print(f"Request failed (attempt {attempt}/{MAX_RETRIES}): {e}")
-            
-            sleep(sleep_error)
-            
-            if mode == "live":
-                sleep_retry += 2
-                sleep_error += 2
-    
+
+            sleep_with_jitter(delay)
+            delay = min(delay * 2, 180)
+
     return None
-
-
-def sleep(time_=None):
-    """
-    Suspends execution. Uses a randomized range by default to simulate human behavior
-    and prevent triggering rate limits.
-    """
-    if time_ is None:
-        time.sleep(uniform(6.5, 9.5))
-    else:
-        time.sleep(time_)
 
 
 def get_path():
@@ -94,7 +107,6 @@ def get_path():
     Resolves the parent project root directory so that relative paths 
     for resources remain stable across different execution contexts.
     """
-
     script_dir = Path(__file__).parent.parent.parent / "data"
     return script_dir
 
@@ -156,7 +168,7 @@ def get_url(url, works=20, is_resumed=False, mode="bulk") -> list[str]:
                 if mode == "bulk":
                     print(f"Failed to fetch page {page_no}, pausing for a bit.")
                 
-                sleep(sleep_error)
+                sleep_with_jitter(sleep_error)
                 
                 if mode == "live":
                     sleep_retry += 2
@@ -172,7 +184,7 @@ def get_url(url, works=20, is_resumed=False, mode="bulk") -> list[str]:
                 if mode == "bulk":
                     print("URL Page did not load, pausing for a bit.")
                 
-                sleep(sleep_retry)
+                sleep_with_jitter(sleep_retry)
                 
                 if mode == "live":
                     sleep_retry += 2
@@ -200,7 +212,7 @@ def get_url(url, works=20, is_resumed=False, mode="bulk") -> list[str]:
             page_no += 1
             
             if mode == "bulk":
-                sleep()
+                sleep_with_jitter()
 
             break
         
@@ -242,7 +254,7 @@ def extract(url: str, story: int | None = None, mode="bulk") -> tuple[dict | Non
                 print("Failed to fetch fanfiction, pausing for a bit.")
             
             iteration = MAX_RETRIES + 1
-            sleep(sleep_fetch)
+            sleep_with_jitter(sleep_fetch)
             
             if mode == "live":
                 sleep_title += 2
@@ -266,7 +278,7 @@ def extract(url: str, story: int | None = None, mode="bulk") -> tuple[dict | Non
                 print("Fanfiction did not load, pausing for a bit.")
             
             iteration += 1
-            sleep(sleep_title)
+            sleep_with_jitter(sleep_title)
             
             if mode == "live":
                 sleep_title += 2
@@ -410,82 +422,113 @@ def save(data: dict) -> None:
 
 
 def scrape():
-    """
-    Main driver executing prompt questions, workflow initialization, index retrieval, 
-    and story collection iteration loop.
-    """
+    # Track the moment the entire scraping session begins
+    session_start_time = time.time()
+    
     story = 1
     is_resumed = False
-    
+    failure_streak = 0
+    session_scraped_count = 0
+
     print("Starting scraper.")
-    
+
+    # Check if scraping should resume from an existing URL list
     if input("Use completed saved URL list? ") == "y":
         parent_dir = get_path()
         file_path_url = os.path.join(parent_dir, "raw", "url_list.txt")
-        
+
         with open(file_path_url, "r", encoding="utf-8") as file:
             url_list = file.read().splitlines()
-        
+
+        # Determine how many stories to skip if resuming a partial run
         if input("Resume scrape from last point? ") == "y":
             file_path_fic = os.path.join(parent_dir, "raw", "ao3_data.csv")
             file_path_failed = os.path.join(parent_dir, "raw", "failed_url_list.txt")
             is_resumed = True
             rows = 0
-            
+
             with open(file_path_fic, "r", encoding="utf-8") as file:
                 reader_ = reader(file)
                 next(reader_, None)
                 rows = sum(1 for _ in reader_)
-            
+
             if os.path.exists(file_path_failed):
                 with open(file_path_failed, "r", encoding="utf-8") as file:
                     rows += sum(1 for _ in file)
-            
+
             print(f"Skipping stories: {rows}")
             story = rows + 1
-            
+
+    # Fallback to fetching URLs from scratch if not using saved list
     else:
         url = input("Enter AO3 URL: ")
         works = int(input("Enter number of works to scrape: "))
         parent_dir = get_path()
         file_path_url = os.path.join(parent_dir, "raw", "url_list.txt")
-        
+
+        # Handle resume logic for the URL fetching phase itself
         if os.path.exists(file_path_url):
             with open(file_path_url, "r", encoding="utf-8") as file:
                 line_count = sum(1 for line in file)
-                
+
                 if line_count > 0:
                     is_resumed = True
                     url_list = get_url(url=url, works=works, is_resumed=is_resumed)
                     is_resumed = False
         else:
             url_list = get_url(url=url, works=works)
-            
+
     print("Got the URLs")
 
+    # Iterate through the gathered URLs and extract metadata
     for url in url_list:
+        # Skip URLs that have already been processed in a previous run
         if is_resumed:
             rows -= 1
             if rows == 0:
                 is_resumed = False
-            
             continue
-            
+
+        # Track the start time for this specific fic
+        fic_start_time = time.time()
+
         print(f"Extracting data from: {url}")
         data, iteration = extract(url=url, story=story)
-        
+
+        # Handle failed extractions and increment the safety tripwire
         if data is None:
             print(f"Skipping story: {story}\n")
+            failure_streak += 1
             story += 1
-            sleep()
-            continue
+            sleep_with_jitter()
             
+            # Abort if Cloudflare completely blocks the scraper
+            if failure_streak >= MAX_FAILURE_STREAK:
+                print("Too many failures in a row; stopping for safety.")
+                break
+            continue
+
         save(data=data)
-        print(f"Story: {story}\nIteration: {iteration}\nSaved: {data['title']}\n\n")
         
+        session_scraped_count += 1
+        
+        # Calculate and format the elapsed time for the fic and the total session
+        fic_time_taken = time.time() - fic_start_time
+        total_time_elapsed = time.time() - session_start_time
+        formatted_total = str(timedelta(seconds=int(total_time_elapsed)))
+
+        print(
+            f"Story: {story} (Scraped this session: {session_scraped_count})\n"
+            f"Iteration: {iteration}\n"
+            f"Saved: {data['title']}\n"
+            f"Fic Time: {fic_time_taken:.2f}s | Session Time: {formatted_total}\n\n"
+        )
+
+        # Reset safety tripwire on a successful scrape
+        failure_streak = 0
         story += 1
-        sleep()
-    
+        sleep_with_jitter()
+
     print("Done!")
 
 
