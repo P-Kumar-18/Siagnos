@@ -5,8 +5,13 @@
 -- Track the operational or publication status of a fanfiction
 CREATE TYPE status AS ENUM ('completed', 'on_going');
 
--- Track user-specific emotional sentiment or rating for a fanfiction
-CREATE TYPE rating_types AS ENUM ('disliked', 'liked', 'loved');
+-- Track the resolution state of a return episode
+CREATE TYPE episode_status AS ENUM (
+    'in_progress',
+    'resolved_return',
+    'resolved_continuation',
+    'resolved_reread'
+);
 
 -- New enum for reading progress state
 CREATE TYPE reading_status AS ENUM ('reading', 'up_to_date', 'completed');
@@ -40,7 +45,6 @@ CREATE TABLE behaviour (
     fic_id BIGINT PRIMARY KEY REFERENCES fics(fic_id) ON DELETE CASCADE,
     chapters_read INTEGER NOT NULL,
     return_visits INTEGER NOT NULL,
-    ratings rating_types,
     reading_progress reading_status NOT NULL,
     closed_at TIMESTAMP WITHOUT TIME ZONE
 );
@@ -135,7 +139,32 @@ CREATE TABLE freeform_join (
 
 
 -- ============================================================================
--- 5. EMBEDDINGS TABLE
+-- 5. RETURN EPISODES TABLE
+-- ============================================================================
+
+-- Tracks confirmed return episodes for each fiction
+CREATE TABLE return_episodes (
+    episode_id BIGSERIAL PRIMARY KEY,
+    fic_id BIGINT NOT NULL REFERENCES fics(fic_id) ON DELETE CASCADE,
+    started_at TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    last_activity_at TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    previous_max_chapter INTEGER NOT NULL,
+    previous_consumption_at TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    revisited_chapters INTEGER[] NOT NULL,
+    current_max_chapter INTEGER NOT NULL,
+    status episode_status NOT NULL
+);
+
+CREATE INDEX idx_return_episodes_fic_id
+    ON return_episodes (fic_id);
+
+CREATE UNIQUE INDEX idx_single_active_episode
+    ON return_episodes (fic_id)
+    WHERE status = 'in_progress'::episode_status;
+
+
+-- ============================================================================
+-- 6. EMBEDDINGS TABLE
 -- ============================================================================
 
 CREATE TABLE embeddings (
