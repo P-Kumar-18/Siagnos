@@ -87,7 +87,8 @@ def test_episode_lifecycle_across_api_restarts(cur, connect, api):
     post_progress(api(), 7002, 3, 4, start + HOUR)                # restart 2: same episode extended
     fresh = connect().cursor()
     assert [e["status"] for e in episodes(fresh, 7002)] == ["in_progress"]
-    assert episodes(fresh, 7002)[0]["revisited_chapters"] == [3, 4]
+    # 2->3 then 3->4 inside old territory credits the chapter left AND the chapter entered (D1)
+    assert episodes(fresh, 7002)[0]["revisited_chapters"] == [2, 3, 4]
 
     result = post_progress(api(), 7002, 2, 3, start + HOUR + 3 * DAY)   # restart 3: >= 24h boundary
     assert result["return_visit_recorded"] is True

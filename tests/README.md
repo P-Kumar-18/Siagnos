@@ -9,7 +9,7 @@ Oracle: the Stage 4 behavioral specification (return episodes), not the current 
     export SIAGNOS_TEST_DSN="postgresql://user:pass@localhost:5432/siagnos_test"
     export SIAGNOS_SCHEMA_FILE=src/database/database_schema_updated.sql   # default: src/database/schema.sql
     pytest
-    pytest --runxfail          # show the known implementation defects as raw failures
+    pytest --runxfail          # only matters if a spec_mismatch xfail is in use
 
     # Extension (Node 20+)
     cd tests/extension && npm install && npm test
@@ -24,7 +24,7 @@ lines, and rewrites `public.` to the private test schema, so a dump never touche
 
 | Marker | Meaning |
 |---|---|
-| `spec_mismatch` (strict xfail) | Asserts the spec; a known implementation defect fails it. Becomes a hard failure (XPASS) once fixed: delete the marker then. IDs: `BUG1`..`BUG4` in `tracker/helpers.py`. |
+| `spec_mismatch` (strict xfail) | Reserved for a test that asserts the spec while a known defect still fails it. Strict, so it becomes a hard failure (XPASS) once fixed: delete the marker then. None are in use now. |
 | `integration` | Needs PostgreSQL. |
 | `concurrency` | Needs two simultaneous transactions. |
 
@@ -39,7 +39,7 @@ lines, and rewrites `public.` to the private test schema, so a dump never touche
 | `tracker/test_confirmation_timestamps.py` | Original timestamp preserved; late confirmation cannot move time backwards |
 | `tracker/test_chapter_events_regression.py` | Existing bucket rules, unresolved close, confirmation, monotonic `chapters_read` |
 | `tracker/test_persistence.py` | New connections and simulated API restarts keep behaviour and episode state |
-| `tracker/test_concurrency.py` | Two interleaved transactions on one fic |
+| `tracker/test_concurrency.py` | Two interleaved transactions on one fic: ordinary event vs resolving event, concurrent first events (no `behaviour` row to lock), two concurrent episode resolutions |
 | `tracker/test_schema_contract.py` | Exact columns, enum, single-active-episode index, cascade, ratings and sessions gone |
 | `tracker/test_ingestion_gate.py`, `tracker/test_models.py` | Ingestion before writes, payload contract |
 | `extension/*.test.mjs` | `content.js` and `background.js`, including Browser Back |

@@ -4,7 +4,6 @@ TrackingEvent, process_tracking_event, and the behaviour/fics tables.
 `behaviour_state` deliberately selects only the columns the Stage 4 model keeps,
 so these tests keep working when the legacy `ratings` column is dropped.
 """
-import pytest
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Optional
@@ -152,24 +151,3 @@ def resolve_by_new_boundary(cursor, fic, last_activity_at, gap=2 * DAY):
     at = last_activity_at + gap
     close(cursor, fic, 1, at)  # chapter 1 is always known territory in these scenarios
     return at
-
-
-# ---- known implementation defects (strict xfail) ----------------------------
-# Each test below asserts the Stage 4 specification and currently FAILS because of a real
-# defect in src/tracker/logic.py. strict=True: the moment the code is fixed the test turns
-# into a hard failure (XPASS), which is the cue to delete the marker. `pytest --runxfail`
-# shows the raw failures.
-
-BUG1 = ("IMPLEMENTATION BUG 1: _update_return_episode classifies events against the episode's "
-        "previous_max_chapter instead of the live chapters_read, so navigating back to a chapter "
-        "consumed earlier in the SAME episode raises ValueError (HTTP 500, event lost)")
-BUG2 = ("IMPLEMENTATION BUG 2: _resolve_episode measures the 30-day reread age to the RESOLVING event "
-        "instead of the return (episode start), so a later return can retroactively age an earlier one")
-BUG3 = ("IMPLEMENTATION BUG 3: _update_return_episode sets last_activity_at = event.timestamp with no "
-        "GREATEST, so a late confirmation (old original timestamp) rewinds it and causes a false 24h boundary")
-BUG4 = ("IMPLEMENTATION BUG 4: process_tracking_event reads behaviour without a row lock and writes an "
-        "absolute return_visits, so a concurrent ordinary event erases a committed return visit")
-
-
-def known_bug(reason):
-    return [pytest.mark.spec_mismatch, pytest.mark.xfail(strict=True, reason=reason)]

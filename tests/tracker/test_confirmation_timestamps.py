@@ -10,7 +10,6 @@ Also: a confirmation that arrives late carries an OLD timestamp, so time-ordered
 import pytest
 
 from tests.tracker.helpers import (
-    BUG3,
     DAY,
     HOUR,
     T0,
@@ -57,8 +56,6 @@ def test_confirmation_never_moves_closed_at_backwards(cur):
     assert behaviour_state(cur, 6202)["closed_at"] == latest
 
 
-@pytest.mark.spec_mismatch
-@pytest.mark.xfail(strict=True, reason=BUG3)
 def test_late_confirmation_does_not_rewind_an_episodes_last_activity(cur):
     fic = seed_fic(cur, 6203, current_chapters=20)
     last = read_through(cur, fic, upto=4)

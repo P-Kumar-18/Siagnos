@@ -11,7 +11,6 @@ import copy
 import pytest
 
 from tests.tracker.helpers import (
-    BUG1,
     DAY,
     HOUR,
     behaviour_state,
@@ -159,8 +158,6 @@ def test_backward_navigation_never_lowers_chapters_read_or_the_episode_maximum(c
 # chapters_read has now moved above the episode's previous_max_chapter. A destination in
 # (previous_max, chapters_read] is "previously consumed" under rule 13 (it is <= chapters_read).
 
-@pytest.mark.spec_mismatch
-@pytest.mark.xfail(strict=True, reason=BUG1)
 def test_previous_chapter_after_consuming_new_chapters_is_confirmed(cur):
     fic, last = history_of_four(cur, 6130)
     at = last + 5 * DAY
@@ -172,8 +169,6 @@ def test_previous_chapter_after_consuming_new_chapters_is_confirmed(cur):
     assert statuses(cur, 6130) == ["in_progress"]
 
 
-@pytest.mark.spec_mismatch
-@pytest.mark.xfail(strict=True, reason=BUG1)
 def test_index_jump_back_into_chapters_consumed_this_episode_is_confirmed(cur):
     fic, last = history_of_four(cur, 6131)
     at = last + 5 * DAY
@@ -185,3 +180,37 @@ def test_index_jump_back_into_chapters_consumed_this_episode_is_confirmed(cur):
 
     assert result["written"] is True
     assert behaviour_state(cur, 6131)["chapters_read"] == 8
+
+
+# ---- revisit credit on clean N+1 movement through OLD territory ---------------
+# Decision D1: leaving chapter N for N+1 inside previously consumed content credits BOTH the
+# chapter being left (rule 14, clean progress) and the destination (rule 13, bucket 1).
+# Without this, rereading chapters 1-4 and stopping on 4 recorded only [2, 3, 4].
+
+def test_next_click_inside_old_territory_counts_the_chapter_left_and_the_one_entered(cur):
+    fic, last = history_of_four(cur, 6140)
+    progress(cur, fic, chapter=2, destination=3, at=last + 5 * DAY)
+    assert episodes(cur, 6140)[0]["revisited_chapters"] == [2, 3]
+
+
+def test_rereading_from_chapter_one_counts_every_chapter_read(cur):
+    fic = seed_fic(cur, 6141, current_chapters=20)
+    last = read_through(cur, fic, upto=10)                     # threshold for 10 chapters is 4
+    at = last + 31 * DAY
+    for chapter in (1, 2, 3):
+        progress(cur, fic, chapter=chapter, destination=chapter + 1, at=at + chapter * HOUR)
+    close(cur, fic, chapter=4, at=at + 4 * HOUR)
+
+    assert episodes(cur, 6141)[0]["revisited_chapters"] == [1, 2, 3, 4]
+    resolve_by_new_boundary(cur, fic, at + 4 * HOUR)
+    assert statuses(cur, 6141)[0] == "resolved_reread"
+
+
+def test_chapter_left_is_not_a_revisit_when_it_was_first_read_in_this_episode(cur):
+    fic, last = history_of_four(cur, 6142)
+    at = last + 5 * DAY
+    for chapter in range(5, 9):                                # consumes 5..8, all above the old max
+        progress(cur, fic, chapter=chapter, destination=chapter + 1, at=at + chapter * HOUR)
+    progress(cur, fic, chapter=6, destination=7, at=at + 10 * HOUR)   # clean N+1 inside NEW territory
+
+    assert episodes(cur, 6142)[0]["revisited_chapters"] == []

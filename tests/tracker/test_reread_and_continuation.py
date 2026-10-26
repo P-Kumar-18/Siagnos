@@ -20,7 +20,6 @@ import pytest
 
 from src.tracker.logic import reread_threshold
 from tests.tracker.helpers import (
-    BUG2,
     DAY,
     HOUR,
     T0,
@@ -136,12 +135,10 @@ def test_unique_chapter_positions_count_once(cur):
 # inside the episode is used.
 
 AGE_CASES = [
-    pytest.param(30 * DAY - timedelta(minutes=1), "resolved_return", id="29d23h59m-not-eligible",
-                 marks=[pytest.mark.spec_mismatch, pytest.mark.xfail(strict=True, reason=BUG2)]),
+    pytest.param(30 * DAY - timedelta(minutes=1), "resolved_return", id="29d23h59m-not-eligible"),
     pytest.param(30 * DAY, "resolved_reread", id="exactly-30d-eligible"),
     pytest.param(30 * DAY + timedelta(seconds=1), "resolved_reread", id="30d+1s-eligible"),
-    pytest.param(29 * DAY, "resolved_return", id="29d-not-eligible",
-                 marks=[pytest.mark.spec_mismatch, pytest.mark.xfail(strict=True, reason=BUG2)]),
+    pytest.param(29 * DAY, "resolved_return", id="29d-not-eligible"),
     pytest.param(45 * DAY, "resolved_reread", id="45d-eligible"),
     pytest.param(10 * DAY, "resolved_return", id="10d-full-reread-still-only-a-return"),
 ]
@@ -153,8 +150,6 @@ def test_reread_age_boundary(cur, gap, expected):
     assert ep["status"] == expected
 
 
-@pytest.mark.spec_mismatch
-@pytest.mark.xfail(strict=True, reason=BUG2)
 def test_the_30_day_clock_is_measured_to_the_return_not_to_the_resolving_event(cur):
     """A full re-read 5 days after the last read is only a return, however long the reader
     stays away afterwards. (A later resolving event 60 days on must not age it.)"""
